@@ -1,2 +1,0 @@
-percorso_file_configurazione = '/home/episciotta/Documenti/SVILUPPO/repo_sviluppo_ctz/dati_configurazione/configurazione.ini'
-file_configurazione_parametri='registri_s604e_parziale.xlsx'
