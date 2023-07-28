@@ -70,18 +70,21 @@ def sql_export_df(serie, sql_tabella, sql_cnx):
 
 def conversione_dati_in_std_ieee(lista_valori_letti):
     lista_valori_convertiti=[]
-    for dato in lista_valori_letti:
-        msb_val = dato[0]
-        lsb_val = dato[1]
-        bin_1 = bin(msb_val)[2::].zfill(16)
-        bin_2 = bin(lsb_val)[2::].zfill(16)
-        binary_string = bin_1 + bin_2
-        ##conversione secondo standard IEEE
-        segno = int(binary_string[0],2)
-        esponente = int(binary_string[1:9],2)
-        frazione = int(binary_string[9::],2)/8388608
-        converted_value = (-1)**segno*2**(esponente-127)*(1+frazione)
-        lista_valori_convertiti.append(converted_value)
+    if lista_valori_letti:
+        for dato in lista_valori_letti:
+            msb_val = dato[0]
+            lsb_val = dato[1]
+            bin_1 = bin(msb_val)[2::].zfill(16)
+            bin_2 = bin(lsb_val)[2::].zfill(16)
+            binary_string = bin_1 + bin_2
+            ##conversione secondo standard IEEE
+            segno = int(binary_string[0],2)
+            esponente = int(binary_string[1:9],2)
+            frazione = int(binary_string[9::],2)/8388608
+            converted_value = (-1)**segno*2**(esponente-127)*(1+frazione)
+            lista_valori_convertiti.append(converted_value)
+    else:
+        print('non è stato letto alcun valore negli Holding Registers')
     return (lista_valori_convertiti)
 
 def inizializza_parametri_reg_ieee(file_configurazione_parametri):
@@ -120,24 +123,27 @@ def lettura_holding_registers(SERVER_HOST, SERVER_PORT):
     for i in range (0, len(registro_indirizzo)):
         lettura_holding_reg = c.read_holding_registers(registro_indirizzo[i], reg_numero_word[i])
         lista_valori_letti.append(lettura_holding_reg)
+    c.close()
     t1 = datetime.now()
     #print("Durata interrogazione: ", (t1-t0).total_seconds(), ' secondi')
     global lista_valori_convertiti
     #Conversione dei dati e memorizzazione sul db
-    lista_valori_convertiti = conversione_dati_in_std_ieee(lista_valori_letti)
-    lista_valori_convertiti.append(t0)
-    lista_valori_convertiti.append(t1)
-    lista_valori_convertiti.append(id_impianto)
+    if lista_valori_convertiti:
+        lista_valori_convertiti = conversione_dati_in_std_ieee(lista_valori_letti)
+        lista_valori_convertiti.append(t0)
+        lista_valori_convertiti.append(t1)
+        lista_valori_convertiti.append(id_impianto)
     return 
 
 def upload_dati_su_db(lista_valori_convertiti, colonna_database):
     to_database = pd.Series(index=colonna_database, data = lista_valori_convertiti)
-    sql_cnx = mysql_connection(db_host, db_user, db_password, db_database)
-    sql_export_df(to_database, db_table, sql_cnx)
+    if to_database.empty!=True:
+        sql_cnx = mysql_connection(db_host, db_user, db_password, db_database)
+        sql_export_df(to_database, db_table, sql_cnx)
     return
 
 
-selezione_id = int(sys.argv[1])
+selezione_id = 1#int(sys.argv[1])
 inizializzazione_dati(selezione_id)
 inizializza_parametri_reg_ieee(file_configurazione_parametri)
 while True:
