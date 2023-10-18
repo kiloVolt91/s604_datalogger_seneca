@@ -142,11 +142,21 @@ def upload_dati_su_db(lista_valori_convertiti, colonna_database):
         sql_export_df(to_database, db_table, sql_cnx)
     return
 
+def s604_datalogger():
+    selezione_id = 1 #int(sys.argv[1])
+    inizializzazione_dati(selezione_id)
+    inizializza_parametri_reg_ieee(file_configurazione_parametri)
+    while True:
+        lettura_holding_registers(SERVER_HOST, SERVER_PORT)
+        upload_dati_su_db(lista_valori_convertiti, colonna_database)
+        time.sleep(2)
+    return
 
-selezione_id = 1#int(sys.argv[1])
-inizializzazione_dati(selezione_id)
-inizializza_parametri_reg_ieee(file_configurazione_parametri)
 while True:
-    lettura_holding_registers(SERVER_HOST, SERVER_PORT)
-    upload_dati_su_db(lista_valori_convertiti, colonna_database)
-    time.sleep(2)
+    try:
+        s604_datalogger()
+    except Exception as error:
+        print(datetime.now())
+        print('Errore :')
+        sys.exit(str(error))
+    break
